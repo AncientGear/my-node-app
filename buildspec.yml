@@ -1,0 +1,24 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    DOCKERHUB_USERNAME: arn:aws:secretsmanager:us-east-1:417414681229:secret:dockerhub-credentials-cb:username
+    DOCKERHUB_PASSWORD: arn:aws:secretsmanager:us-east-1:417414681229:secret:dockerhub-credentials-cb:password
+
+phases:
+  pre_build:
+    on_failure: ABORT
+    commands:
+      - echo "Starting deployment process..."
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 417414681229.dkr.ecr.us-east-1.amazonaws.com
+      - printf "$DOCKERHUB_PASSWORD" | docker login --username $DOCKERHUB_USERNAME --password-stdin
+  build:
+    on_failure: ABORT
+    commands:
+      - docker build -t 417414681229.dkr.ecr.us-east-1.amazonaws.com/my-node-app:latest .
+      - docker push 417414681229.dkr.ecr.us-east-1.amazonaws.com/my-node-app:latest
+  post_build:
+    commands:
+      - docker image rm 417414681229.dkr.ecr.us-east-1.amazonaws.com/my-node-app:latest
+      - echo "Docker image built successfully."
+      - echo "Deployment process completed."
